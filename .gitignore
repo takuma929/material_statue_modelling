@@ -1,0 +1,25 @@
+# OS and editor files
+.DS_Store
+._*
+*.asv
+*.m~
+~$*
+
+# Stimuli are not distributed (see README.md, "Put the stimuli in place")
+data/MAT-images/*
+!data/MAT-images/README.md
+data/PNG-images/
+*.mat
+*.png
+
+# Eye-movement files: only the three example recordings are part of the repository
+data/trajectories/*
+!data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv
+!data/trajectories/ABF_2_PS_gaze_trajectory_coordinates.csv
+!data/trajectories/ABF_HC_3_gaze_trajectory_coordinates.csv
+
+# Output of the scripts
+results/
+
+# Local material that is not part of the published code
+extras/

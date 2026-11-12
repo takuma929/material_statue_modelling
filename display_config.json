@@ -1,0 +1,4 @@
+{
+  "image_size_deg": 27.6,
+  "about": "image_size_deg is the visual angle that the stimulus image spans on the display, in degrees (the image is square). In the experiment the image was 39.3 cm high, the full height of the display, and was viewed from 80 cm: 2 * atan(39.3 / (2 * 80)) = 27.6 deg. With the 1024 pixels of the stimulus image, one degree is 37.1 image pixels. This is the only place where the visual angle is set: the gaze window and the statistics expressed in degrees are computed with it (utils/analysis_config.m)."
+}

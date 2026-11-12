@@ -6,11 +6,17 @@ function seq = presentation_sequence(cfg)
 %   frames sample the swing at equal time steps:
 %
 %       frame  1        central view (angle 0)
-%       frames 2 - 31   centre -> one extreme   (angle  sin(pi/2 * k/30))
-%       frames 32 - 61  centre -> other extreme (angle -sin(pi/2 * k/30))
+%       frames 2 - 31   centre -> extreme on the right (angle  sin(pi/2 * k/30))
+%       frames 32 - 61  centre -> extreme on the left  (angle -sin(pi/2 * k/30))
 %
-%   One cycle shows 1 2 ... 31 30 ... 2 1 32 ... 61 60 ... 32, that is 120
-%   frame steps, and a trial shows cfg.presentation.n_cycles cycles.
+%   In the order of the rotation angle the frames are 61 60 ... 32 1 2 ...
+%   31. A cycle walks through this order and back, 120 frame steps, from
+%   the frame shown first (cfg.presentation.start_frame): with frame 61,
+%   the extreme on the left, a cycle is 61 60 ... 32 1 2 ... 31 30 ... 2 1
+%   32 ... 60 (to the right, then back to the left). If the trial starts
+%   between the extremes (frame 1 is the central view),
+%   cfg.presentation.start_direction gives the first movement: 1 to the
+%   right, -1 to the left. A trial shows cfg.presentation.n_cycles cycles.
 %
 %   Fields of seq (T = number of frame steps of a trial):
 %     frame       1 x T   rendered frame shown at each step
@@ -37,13 +43,21 @@ nf = cfg.stimulus.n_frames;                         % 61
 assert(nf == 2 * q + 1, 'presentation_sequence:frames', ...
     'Expected %d frames for %d steps per quarter cycle.', 2 * q + 1, q);
 
-half_a = [1:(q + 1), q:-1:2];                       % 1 2 ... 31 30 ... 2
-half_b = [1, (q + 2):nf, (nf - 1):-1:(q + 2)];      % 1 32 ... 61 60 ... 32
-if cfg.presentation.first_half == 1
-    cycle = [half_a, half_b];
-else
-    cycle = [half_b, half_a];
+% frames sorted by rotation angle; a cycle walks through them and back
+order = [nf:-1:(q + 2), 1:(q + 1)];                 % 61 60 ... 32 1 2 ... 31
+start = cfg.presentation.start_frame;
+step  = cfg.presentation.start_direction;           % 1: toward frame 31 (right), -1: toward frame 61 (left)
+assert(isscalar(start) && ismember(start, 1:nf), 'presentation_sequence:start', ...
+    'cfg.presentation.start_frame must be a frame number between 1 and %d.', nf);
+assert(isscalar(step) && abs(step) == 1, 'presentation_sequence:direction', ...
+    'cfg.presentation.start_direction must be 1 or -1.');
+r = zeros(1, 4 * q);
+r(1) = find(order == start);
+for k = 2:4 * q
+    if r(k - 1) + step < 1 || r(k - 1) + step > nf, step = -step; end   % turn at an extreme
+    r(k) = r(k - 1) + step;
 end
+cycle = order(r);
 seq.frame = repmat(cycle, 1, cfg.presentation.n_cycles);
 T = numel(seq.frame);
 
@@ -58,7 +72,7 @@ seq.frame_angle(q + 2:nf)  = -sin(pi / 2 * (1:q) / q);
 seq.angle = seq.frame_angle(seq.frame);
 
 % frames sorted by angle, and the pairs of neighbours in that order
-seq.order = [nf:-1:(q + 2), 1:(q + 1)];
+seq.order = order;
 seq.rank  = zeros(1, nf);
 seq.rank(seq.order) = 1:nf;
 seq.pair_frames = [seq.order(1:end - 1)', seq.order(2:end)'];

@@ -9,14 +9,18 @@ function cfg = analysis_config()
 %
 %   VALUES TO CONFIRM against the experiment (marked "CONFIRM" below):
 %     cfg.presentation.timing          how gaze time is turned into a frame
-%     cfg.presentation.first_half      which half-swing was shown first
-%     cfg.display.image_size_deg       visual angle of the stimulus image
-%   The first two only affect the conversion of gaze samples (time ->
-%   frame). The visual angle sets the size of the gaze window in pixels; of
-%   the statistics of the whole statue, it enters only the four of the
-%   silhouette expressed in degrees (obj_*_deg) and the two contrast
-%   statistics that use a local mean over cfg.stats.blur_deg
-%   (contrast_local_blur, contrast_meese_summers_blur).
+%     cfg.presentation.start_frame     the view shown first in a trial
+%   They only affect the conversion of gaze samples (time -> frame); the
+%   statistics of the whole statue do not depend on them.
+%
+%   VISUAL ANGLE. The visual angle of the stimulus image is not set here
+%   but in display_config.json, in the folder of the repository
+%   (image_size_deg). It gives the number of image pixels per degree, which
+%   sets the size of the gaze window (cfg.window.radius_deg) and enters the
+%   few statistics defined in degrees: those of the silhouette and of the
+%   gaze position whose names end in _deg, and the two contrast statistics
+%   that use a local mean over cfg.stats.blur_deg (contrast_local_blur,
+%   contrast_meese_summers_blur).
 
 cfg = struct();
 cfg.root = fileparts(fileparts(mfilename('fullpath')));
@@ -53,14 +57,19 @@ cfg.stimulus.image_size_px  = 1024;        % frames are square
 %% ---- Presentation ------------------------------------------------------
 % The 61 rendered frames sample one sinusoidal swing of the statue at equal
 % time steps: frame 1 is the central view, frames 2-31 run from the centre
-% to one extreme and frames 32-61 from the centre to the other extreme (the
-% steps between frames shrink toward each extreme, as a sinusoid does). One
-% cycle is centre -> extreme -> centre -> other extreme -> centre, that is
-% 4 x 30 = 120 frame steps, and a trial shows two cycles (240 frame steps).
-% See utils/presentation_sequence.m.
+% to the extreme on the right and frames 32-61 from the centre to the
+% extreme on the left (the steps between frames shrink toward each extreme,
+% as a sinusoid does). In the order of the rotation angle the frames are
+% 61 60 ... 32 1 2 ... 31; from frame 61 to frame 31 the visible surface of
+% the statue moves to the right in the image.
+% A trial starts at the extreme on the left (frame 61), swings to the right
+% (to frame 31) and back to the left: 61 60 ... 32 1 2 ... 31 30 ... 2 1 32
+% ... 60, that is 4 x 30 = 120 frame steps per cycle, and shows two cycles
+% (240 frame steps). See utils/presentation_sequence.m.
 cfg.presentation.frames_per_quarter = 30;
 cfg.presentation.n_cycles           = 2;
-cfg.presentation.first_half         = 1;      % CONFIRM: 1 = frames 2-31 first, 2 = frames 32-61 first
+cfg.presentation.start_frame        = 61;     % CONFIRM: frame shown first: 61 = extreme on the left, 1 = central view, 31 = extreme on the right
+cfg.presentation.start_direction    = 1;      % first movement if the trial starts between the extremes: 1 = to the right (toward frame 31), -1 = to the left
 % Timing. The gaze recordings last 13.50 to 13.57 s. How a gaze sample is
 % assigned to a frame step (utils/gaze_per_step.m):
 %   'recording'  the 240 frame steps are spread evenly over each recording,
@@ -80,8 +89,14 @@ cfg.presentation.trial_duration_s   = 13.5;          % nominal duration of a tri
 % [left top width height]; utils/screen_to_image.m converts with it. For
 % gaze in screen pixels, put the rectangle of the image on the screen here.
 cfg.display.image_rect_px  = [0 0 1080 1080];
-cfg.display.image_size_deg = 20;                                   % CONFIRM: visual angle of the stimulus image [deg]
-cfg.display.px_per_deg     = cfg.stimulus.image_size_px / cfg.display.image_size_deg;   % image pixels per degree
+% Pixels and degrees. display_config.json holds the visual angle that the
+% stimulus image spans (image_size_deg): 27.6 deg, an image 39.3 cm high
+% viewed from 80 cm, 2 * atan(39.3 / (2 * 80)). It is the only place where
+% the visual angle is set. Pixels and degrees are converted linearly
+% (utils/px_to_deg.m, utils/deg_to_px.m).
+cfg.display.config_file    = fullfile(cfg.root, 'display_config.json');
+cfg.display.image_size_deg = read_image_size_deg(cfg.display.config_file);
+cfg.display.px_per_deg     = cfg.stimulus.image_size_px / cfg.display.image_size_deg;    % image pixels per degree
 
 %% ---- Object mask and the handling of its edge --------------------------
 % The statue is rendered against a background that is exactly black. Its
@@ -112,7 +127,7 @@ cfg.edge.border_px = 7;            % band left out of every pixel statistic
 cfg.edge.taper_px  = 8;            % width of the smooth fall of the spectral window
 
 %% ---- Gaze window (local statistics) ------------------------------------
-cfg.window.radius_deg   = 1.5;     % radius of the circular window centred on gaze (default; an argument of compute_local_statistics)
+cfg.window.radius_deg   = 1.5;     % radius of the circular window centred on gaze [deg] (default; an argument of compute_local_statistics)
 cfg.window.min_coverage = 0.10;    % below this fraction of the window on the object, statistics are NaN
 cfg.window.taper_frac   = 0.25;    % outer fraction of the radius over which the spectral window falls to zero
 cfg.window.nfft         = 256;     % smallest FFT size of the window (zero-padded; larger windows use the next power of 2)
@@ -146,4 +161,15 @@ cfg.paths.cache        = fullfile(cfg.root, 'results', 'cache');
 cfg.paths.videos       = fullfile(cfg.root, 'results', 'videos');
 
 cfg.rng_seed = 0;                  % seed of every randomized step of the analysis
+end
+
+% =========================================================================
+function deg = read_image_size_deg(file)
+% Visual angle of the stimulus image [deg] from display_config.json.
+assert(exist(file, 'file') == 2, 'analysis_config:display', ...
+    'File not found: %s\nIt holds the visual angle of the stimulus image, for example {"image_size_deg": 27.6}.', file);
+D = jsondecode(fileread(file));
+assert(isfield(D, 'image_size_deg') && isnumeric(D.image_size_deg) && isscalar(D.image_size_deg) && D.image_size_deg > 0, ...
+    'analysis_config:display', 'image_size_deg in %s must be a positive number: the visual angle of the stimulus image in degrees.', file);
+deg = D.image_size_deg;
 end

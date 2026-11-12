@@ -6,10 +6,10 @@ and around the gaze position of an observer. All code is MATLAB.
 ![The nine conditions, the swing of the statue, a recorded gaze path with the gaze window, and five views across the swing](docs/stimuli.jpg)
 
 *The stimuli. (a) The nine conditions: three statues in three materials. (b) The
-statue swings sinusoidally about its central view for two cycles; the 240 frame
-steps of a trial are drawn from 61 rendered frames. (c) The gaze path of one
-trial and the window in which the local statistics are computed. (d) Five views
-across the swing.*
+statue swings sinusoidally about its central view for two cycles, from the left
+to the right and back; the 240 frame steps of a trial are drawn from 61
+rendered frames. (c) The gaze path of one trial and the window in which the
+local statistics are computed. (d) Five views across the swing.*
 
 ![Overview of the statistics: one panel per kind of statistic](docs/statistics_overview.jpg)
 
@@ -37,8 +37,9 @@ definitions.*
 
 In the experiment, observers viewed a rendered statue in one of nine conditions
 (three statues: B, H, P; three materials: C, R, S). The statue swung
-sinusoidally about its central view for two cycles while the observers answered
-questions about it, and their eye movements were recorded with an EyeLink.
+sinusoidally about its central view for two cycles in about 13.5 s (to the
+right, then back to the left) while the observers answered questions about it,
+and their eye movements were recorded with an EyeLink.
 
 The repository computes a broad set of statistics of those stimuli (luminance,
 color, contrast, highlights, spatial structure, motion) in two ways:
@@ -122,7 +123,8 @@ compute_local_statistics(trajectory_file, radius_deg)
 
 * `trajectory_file`: a csv file of eye movements (format in section 5)
 * `radius_deg`: radius of the window around the gaze position, in degrees of
-  visual angle (optional; default 1.5, a window 3 deg across)
+  visual angle (optional; default 1.5, a window 3 deg across: 111 of the 1024
+  pixels of the image, which spans 27.6 deg)
 
 For example, with one of the three recordings in `data/trajectories/`:
 
@@ -320,34 +322,62 @@ How to read a bar:
 
 ## 8. Settings to check
 
-Every setting is in [`utils/analysis_config.m`](utils/analysis_config.m). Three
+Every setting is in [`utils/analysis_config.m`](utils/analysis_config.m). Two
 values describe the experiment. They are the current working assumptions and
 are marked `CONFIRM` in that file; change them there if the experiment was
-different, and compute the statistics again.
+different, and run step 3 again.
 
 | Setting | Current value | Used for |
 | --- | --- | --- |
-| `cfg.display.image_size_deg` | 20 (the stimulus image spans 20 deg) | the size of the window in pixels: 51.2 image pixels per degree, so a radius of 1.5 deg is 77 px |
 | `cfg.presentation.timing` | `'recording'`: the 240 frame steps are spread evenly over each recording (13.5 s, about 56 ms per step) | which frame was on the screen at each gaze sample |
-| `cfg.presentation.first_half` | 1 (frames 2-31 first) | the same |
+| `cfg.presentation.start_frame` | 61: a trial starts at the extreme on the left, swings to the right and back | the same |
 
-The timing and the order of the half-swings only affect the local statistics.
-The visual angle also enters six global statistics: the four of the silhouette
-that are expressed in degrees (`obj_width_deg`, `obj_height_deg`,
-`obj_centroid_x_deg`, `obj_centroid_y_deg`) and the two contrast statistics
-that use a local mean over 0.5 deg (`contrast_local_blur`,
-`contrast_meese_summers_blur`). After changing `image_size_deg`, run steps 2
-and 3 again.
+They only affect the local statistics.
+
+**The visual angle.** The visual angle that the stimulus image spans is set in
+[`display_config.json`](display_config.json), in the folder of the repository,
+and nowhere else:
+
+```json
+{
+  "image_size_deg": 27.6
+}
+```
+
+In the experiment the image was 39.3 cm high (the full height of the display)
+and was viewed from 80 cm, so it spanned 2 x atan(39.3 / (2 x 80)) = 27.6 deg.
+With the 1024 pixels of the stimulus image, one degree is 37.1 image pixels,
+and the default window of radius 1.5 deg is 55.7 pixels in radius. The value
+sets the size of the gaze window and enters the statistics that are defined in
+degrees: the six whose names end in `_deg` (size and position of the
+silhouette, position of gaze) and the two contrast statistics that use a local
+mean over 0.5 deg (`contrast_local_blur`, `contrast_meese_summers_blur`). After
+changing it, run steps 2 and 3 again.
+
+Pixels and degrees are converted linearly. `px_to_deg` and `deg_to_px` (in
+`utils/`) do the conversion with the value of the file, for example to express
+the speed of the optical flow in degrees per second:
+
+```matlab
+addpath utils
+k = strcmp(Lc.names, 'flow_speed');                                   % pixels per frame step
+speed = px_to_deg(Lc.values(1, :, k)) ./ median(diff(Lc.time(1, :)));   % degrees per second
+```
 
 **The presentation.** The 61 frames sample one sinusoidal swing at equal time
-steps: frame 1 is the central view, frames 2-31 run from the centre to one
-extreme and frames 32-61 from the centre to the other extreme. One cycle is
-1, 2, ..., 31, 30, ..., 2, 1, 32, ..., 61, 60, ..., 32 (120 frame steps), and a
-trial shows two cycles (240 frame steps).
+steps: frame 1 is the central view, frames 2-31 run from the centre to the
+extreme on the right and frames 32-61 from the centre to the extreme on the
+left. A trial starts at the extreme on the left (frame 61), swings to the right
+and comes back: one cycle is 61, 60, ..., 32, 1, 2, ..., 31, 30, ..., 2, 1, 32,
+..., 60 (120 frame steps), and a trial shows two cycles (240 frame steps).
 [`utils/presentation_sequence.m`](utils/presentation_sequence.m) returns the
-frame shown at every step. With `timing = 'recording'` a recording is taken to
-span exactly the two cycles; if the recordings include time before or after the
-motion, or the frames were shown at a fixed rate, set `timing = 'nominal'` and
+frame shown at every step. For a trial that starts at the central view, set
+`start_frame = 1` (and `cfg.presentation.start_direction`, 1 for a first
+movement to the right, -1 to the left).
+
+With `timing = 'recording'` a recording is taken to span exactly the two
+cycles; if the recordings include time before or after the motion, or the
+frames were shown at a fixed rate, set `timing = 'nominal'` and
 `cfg.presentation.trial_duration_s`.
 
 Other settings that are likely to be changed are the default radius of the
@@ -386,10 +416,10 @@ statistics (127 per frame, 20 per frame pair, 8 per condition) and a local file
 148 (6 + 122 + 20).
 
 **Units.** Luminance is linear with 1 = display white; L\*, a\*, b\* are
-CIELAB relative to the display white. Lengths are in image pixels unless the
-name ends in `_deg`. Motion is per frame step of the presentation; divide by
-`cfg.display.px_per_deg` and by the duration of a frame step (the spacing of
-`Lc.time`, about 0.056 s) for degrees per second.
+CIELAB relative to the display white. Lengths are in pixels of the 1024-px
+image unless the name ends in `_deg`. Motion is in pixels per frame step of the
+presentation; convert with `px_to_deg` and divide by the duration of a frame
+step (the spacing of `Lc.time`, about 0.056 s) for degrees per second.
 
 **Highlights** are defined relative to the whole statue in that frame (the
 brightest 5% of its pixels; multiples of its median luminance), so that their
@@ -464,8 +494,10 @@ demo.m                        runs everything on the three example recordings
 compute_global_statistics.m   statistics of the whole statue -> results/global_statistics.mat
 compute_local_statistics.m    statistics around gaze         -> results/local_statistics_<name>_r<radius>deg.mat
 make_trajectory_video.m       video of a trial for checking by eye (optional)
+display_config.json           visual angle of the stimulus image
 utils/
   analysis_config.m           every setting (paths, presentation, display, parameters)
+  px_to_deg.m, deg_to_px.m    pixels <-> degrees of visual angle
   statistic_catalog.m         name, family and definition of every statistic
   load_frames.m               reads the stimulus files as linear RGB
   check_stimuli.m             stops with a message if stimulus files are missing

@@ -3,7 +3,7 @@ function px = deg_to_px(deg, cfg)
 %
 %   px = deg_to_px(deg) converts lengths in degrees of visual angle to
 %   pixels of the 1024-px stimulus image, with the visual angle of the
-%   image given in display_config.json (image_size_deg). deg can be an
+%   image given in config.json (image_size_deg). deg can be an
 %   array. For example, deg_to_px(1.5) is the radius of the default gaze
 %   window in pixels.
 %   px = deg_to_px(deg, cfg) uses the configuration cfg instead of reading
@@ -11,6 +11,6 @@ function px = deg_to_px(deg, cfg)
 %
 %   See also PX_TO_DEG.
 
-if nargin < 2, cfg = analysis_config(); end
+if nargin < 2, cfg = load_config(); end
 px = deg * cfg.display.px_per_deg;
 end

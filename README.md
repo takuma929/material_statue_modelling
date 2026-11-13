@@ -24,14 +24,15 @@ definitions.*
 1. [What the repository does](#1-what-the-repository-does)
 2. [Requirements](#2-requirements)
 3. [Quick start](#3-quick-start)
-4. [Step by step](#4-step-by-step)
-5. [The eye-movement file](#5-the-eye-movement-file)
-6. [Reading the results](#6-reading-the-results)
-7. [The check video](#7-the-check-video)
-8. [Settings to check](#8-settings-to-check)
-9. [The statistics](#9-the-statistics)
-10. [Running time, memory and common problems](#10-running-time-memory-and-common-problems)
-11. [Files](#11-files)
+4. [The configuration file](#4-the-configuration-file)
+5. [Step by step](#5-step-by-step)
+6. [The eye-movement file](#6-the-eye-movement-file)
+7. [Reading the results](#7-reading-the-results)
+8. [The check video](#8-the-check-video)
+9. [The experiment: visual angle and presentation](#9-the-experiment-visual-angle-and-presentation)
+10. [The statistics](#10-the-statistics)
+11. [Running time, memory and common problems](#11-running-time-memory-and-common-problems)
+12. [Files](#12-files)
 
 ## 1. What the repository does
 
@@ -53,14 +54,18 @@ color, contrast, highlights, spatial structure, motion) in two ways:
 Both use the same code: a local value is the global statistic restricted to the
 pixels of the window, so the two are directly comparable. Only pixels of the
 statue enter a statistic; the black background and the contour of the statue
-are left out (section 9).
+are left out (section 10).
 
 | Script | Input | Output |
 | --- | --- | --- |
 | `compute_global_statistics` | the nine stimulus files | `results/global_statistics.mat` (all conditions and frames in one file) |
-| `compute_local_statistics(file, radius_deg)` | one eye-movement file, radius of the window | `results/local_statistics_<name>_r<radius>deg.mat` (one file per recording) |
+| `compute_local_statistics` | the eye-movement files and the radius of the window named in `config.json` | `results/local_statistics_<name>_r<radius>deg.mat` (one file per recording) |
 | `make_trajectory_video(result_file)` | a local result file | a video of the trial with every statistic, for checking by eye (optional) |
-| `demo` | the three example recordings | all of the above |
+| `demo` | everything as set in `config.json` | all of the above |
+
+What is processed and how is set in one file, [`config.json`](config.json): the
+eye-movement files, the radius of the window, whether videos are made, and the
+visual angle of the stimulus (section 4).
 
 ## 2. Requirements
 
@@ -82,11 +87,91 @@ demo
 ```
 
 This computes the statistics of the whole statue, then the statistics around
-the gaze position for the three example recordings in `data/trajectories/`, and
-makes a video of each (about 15 minutes the first time with a parallel pool).
-The output appears in `results/`.
+the gaze position for the eye-movement files named in `config.json`, and makes
+a video of each trial. With the `config.json` of the repository, these are the
+three example recordings in `data/trajectories/` and a window of radius 1.5 deg
+(about 15 minutes the first time with a parallel pool). The output appears in
+`results/`.
 
-## 4. Step by step
+To process your own recordings, put the csv files in `data/trajectories/` (or
+name them in `config.json`) and run `demo` again.
+
+## 4. The configuration file
+
+[`config.json`](config.json), in the folder of the repository, holds every
+setting, and it is the only place where settings are made. Edit it with any
+text editor; the scripts read it every time they start. No script needs to be
+changed to process other files or to use another window.
+
+The entries at the top are the ones that change from one run to the next:
+
+```json
+{
+  "eye_movement_files": ["data/trajectories/*.csv"],
+  "window_radius_deg": 1.5,
+  "make_video": true,
+
+  "image_size_deg": 27.6,
+  "start_frame": 61,
+
+  "stimulus_folder": "data/MAT-images",
+  "results_folder": "results",
+
+  "advanced": { ... }
+}
+```
+
+| Entry | Meaning |
+| --- | --- |
+| `eye_movement_files` | The eye-movement files to process: a list of csv files. Each item is a file name or a pattern with `*` (every file that matches). Paths are relative to the folder of the repository, or absolute. |
+| `window_radius_deg` | Radius of the circular window around the gaze position, in degrees of visual angle. A list, for example `[1, 1.5, 2]`, computes the statistics once per radius. |
+| `make_video` | `true`: also make a video of every trial (about 2 minutes per trial). `false`: statistics only. |
+| `image_size_deg` | Visual angle that the stimulus image spans on the display, in degrees (section 9). |
+| `start_frame` | Rendered frame shown first in a trial: 61 = extreme on the left (section 9). To confirm against the experiment. |
+| `stimulus_folder` | Folder that holds the nine stimulus files. |
+| `results_folder` | Folder in which the results and the videos are written. |
+
+Some examples:
+
+```json
+"eye_movement_files": ["data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv"]
+```
+
+processes one recording;
+
+```json
+"eye_movement_files": ["data/trajectories/ABF_*.csv", "/path/to/more_recordings/*.csv"],
+"window_radius_deg": [1, 1.5, 2],
+"make_video": false
+```
+
+processes every recording of observer ABF and every csv file of a second
+folder, with three sizes of window and without videos.
+
+**`advanced`** holds the parameters of the analysis itself. They rarely need to
+change, and a change of any of them changes the statistics:
+
+| Group | What it sets |
+| --- | --- |
+| `stimulus` | the letters of the statues and materials, the number and size of the frames, the format of the stimulus files |
+| `presentation` | the number of frame steps and cycles of a trial, its nominal duration |
+| `gaze_file` | the rectangle that the image occupies in the coordinates of the gaze files |
+| `silhouette` | the threshold above which a pixel belongs to the statue |
+| `contour` | the width of the band left out at the contour of the statue (section 10) |
+| `window` | the smallest part of a gaze window that must lie on the statue, the taper of the window |
+| `statistics` | the floors, the fraction of pixels that are highlights, the scales of the filters, the ranges of spatial frequency |
+| `motion` | the parameters of the optical flow and of the tracked points |
+| `rng_seed` | the seed of every randomized step |
+
+The file explains every entry, including each one of `advanced`, in its `help`
+entry at the end.
+
+JSON is strict about punctuation: text goes in double quotes, items are
+separated by commas, and there is no comma after the last item. A file that
+cannot be read, a missing entry, or an entry with a value that cannot be used
+stops the scripts with a message that names the entry.
+
+## 5. Step by step
 
 ### Step 1. Put the stimuli in place
 
@@ -118,53 +203,47 @@ parallel pool). Run it once; it does not depend on the gaze data.
 ### Step 3. Statistics around the gaze position
 
 ```matlab
-compute_local_statistics(trajectory_file, radius_deg)
+compute_local_statistics
 ```
 
-* `trajectory_file`: a csv file of eye movements (format in section 5)
-* `radius_deg`: radius of the window around the gaze position, in degrees of
-  visual angle (optional; default 1.5, a window 3 deg across: 111 of the 1024
-  pixels of the image, which spans 27.6 deg)
+This processes every eye-movement file named in `config.json`
+(`eye_movement_files`; format of the files in section 6), with the window given
+there (`window_radius_deg`). The default radius of 1.5 deg is a window 3 deg
+across: 111 of the 1024 pixels of the image, which spans 27.6 deg.
 
-For example, with one of the three recordings in `data/trajectories/`:
+Each recording gives one file,
+`results/local_statistics_<name>_r<radius>deg.mat`, where `<name>` is the name
+of the eye-movement file. One recording takes about a minute with a parallel
+pool. Results for different radii are kept side by side, since the radius is
+part of the file name.
 
-```matlab
-compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv')        % radius 1.5 deg
-compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 2.5)   % radius 2.5 deg
-```
-
-Each call writes one file, `results/local_statistics_<name>_r<radius>deg.mat`,
-where `<name>` is the name of the trajectory file. One recording takes about a
-minute with a parallel pool. Results for different radii are kept side by side,
-since the radius is part of the file name.
-
-To process your own recordings, put the csv files in `data/trajectories/` and
-loop over them:
-
-```matlab
-files = dir('data/trajectories/*.csv');
-for i = 1:numel(files)
-    compute_local_statistics(fullfile(files(i).folder, files(i).name), 1.5);
-end
-```
+To process your own recordings, put the csv files in `data/trajectories/`: the
+`config.json` of the repository takes every csv file of that folder. To process
+only some of them, or files in another folder, name them in `config.json`.
 
 ### Step 4 (optional). A video to check a recording by eye
 
-```matlab
-compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 1.5, true)
-```
-
-With `true` as the third argument, a video of the trial is made as well
-(`results/videos/<name>_r<radius>deg_trial<N>_<condition>.mp4`, about 2 minutes
-per trial). A video can also be made afterwards from a result file:
+With `"make_video": true` in `config.json`, step 3 also makes a video of every
+trial (`results/videos/<name>_r<radius>deg_trial<N>_<condition>.mp4`, about 2
+minutes per trial). A video can also be made afterwards from a result file:
 
 ```matlab
 make_trajectory_video('results/local_statistics_ABF_1_BR_gaze_trajectory_coordinates_r1.5deg.mat')
 ```
 
-Section 7 explains how to read the video.
+Section 8 explains how to read the video.
 
-## 5. The eye-movement file
+### One call with other settings
+
+The arguments of `compute_local_statistics` override `config.json` for one
+call, without editing the file:
+
+```matlab
+compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv')               % this file only
+compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 2.5, false)   % radius 2.5 deg, no video
+```
+
+## 6. The eye-movement file
 
 One csv file per recording (one trial), with one row per gaze sample:
 
@@ -187,22 +266,23 @@ Three recordings are in `data/trajectories/` as examples.
 
 **Coordinates.** The positions are converted to pixels of the 1024-px stimulus
 image by `utils/screen_to_image.m`, using the rectangle that the image occupies
-in the coordinates of the file (`cfg.display.image_rect_px = [0 0 1080 1080]`).
-For gaze in screen pixels, put the rectangle of the image on the screen there.
+in the coordinates of the file (`advanced.gaze_file.image_rect_px` in
+`config.json`, `[0, 0, 1080, 1080]`). For gaze in screen pixels, put the
+rectangle of the image on the screen there.
 
-**Time.** The eye tracker samples faster than the frames change. The samples
+**Time.** The time of every sample is read from the file (`Time_sec`). The
+file does not say when each frame appeared, so the 240 frame steps of a trial
+are spread evenly over the recording, from its first to its last sample (see
+section 9). The eye tracker samples faster than the frames change: the samples
 recorded while a frame was on the screen are reduced to their median, which
 gives one gaze position per frame step; a step with fewer than half of its
 samples (blink, track loss) has no gaze position, and its statistics are NaN.
-The 240 frame steps of a trial are spread evenly over the recording, from its
-first to its last sample (`cfg.presentation.timing = 'recording'`; see
-section 8).
 
 A second layout is also read: a table of several trials already in image
 pixels, with the columns `trial`, `observer`, `condition`, `task`, `time_s`,
 `x_px`, `y_px` (described in `utils/load_trajectories.m`).
 
-## 6. Reading the results
+## 7. Reading the results
 
 ### The whole statue
 
@@ -293,7 +373,7 @@ writetable([Lc.trials, S], 'summary_mean.csv');
   the next one shown.
 * `hue_mean` is an angle; average it with circular statistics.
 
-## 7. The check video
+## 8. The check video
 
 The video shows a trial at half speed, for checking by eye that the gaze
 position, the window and the statistics are what they should be.
@@ -311,43 +391,67 @@ How to read a bar:
 * The **length of the bar** is the value of the statistic in the gaze window
   at that moment.
 * The **axis of the bar** runs from the 5th percentile (left end) to the 95th
-  percentile (right end) of that statistic over the recording. A long bar means
-  a high value relative to the rest of the trial, not a high absolute value;
-  the values themselves are in `Lc.values`.
+  percentile (right end) of the values over the recording. The values
+  themselves are in `Lc.values`.
+* **Statistics of the same quantity share one axis**, so that their bars can
+  be compared with one another. The luminance statistics, for example
+  (`lum_mean`, `lum_median`, `lum_sd`, `lum_p01` ... `lum_max`), are all drawn
+  on one luminance axis, from zero to the highest 95th percentile among them: a
+  bar twice as long is twice the luminance. A shared axis starts at zero when
+  its values are all positive; otherwise it runs from the lowest 5th to the
+  highest 95th percentile of the group. The table below lists the groups.
+* A statistic that is in no group has its own axis. A long bar then means a
+  high value relative to the rest of the trial, not a high absolute value.
 * The **white tick** is the value of the whole statue in the same frame, on the
   same axis. A bar that ends to the right of its tick means that the region
   looked at has a higher value than the statue as a whole. The ticks are shown
   if `results/global_statistics.mat` exists; the six statistics of the window
   have none.
 
-## 8. Settings to check
+| Shared axis | Statistics |
+| --- | --- |
+| luminance | `lum_mean`, `lum_median`, `lum_sd`, `lum_p01` ... `lum_p999`, `lum_max` |
+| log10 ratio of luminances | `loglum_sd`, `loglum_range`, `loglum_upper_tail`, `loglum_lower_tail`, `contrast_dynamic_range`, `contrast_robust_range`, `hl_contrast` |
+| lightness L\* | `lightness_mean`, `_median`, `_sd`, `_p01`, `_p99` |
+| a\*, b\* and chroma | `a_`, `b_` and `chroma_` `mean`, `median`, `sd`, `p01`, `p99` |
+| saturation | `saturation_mean`, `_median`, `_sd`, `_p01`, `_p99` |
+| skewness | every `*_skew` |
+| kurtosis | every `*_kurt` |
+| correlation (fixed axis, -1 to 1) | every `corr_*` |
+| distance in the u'v' diagram | `uv_dist_mean`, `uv_dist_sd` |
+| RGB saturation | `sat_rgb_mean`, `sat_rgb_sd`, `sat_highlight`, `sat_body`, `sat_highlight_drop` |
+| opponent chromaticity of the highlights | `hl_rg`, `hl_yb` |
+| fraction of the pixels of the region | `lum_dark_frac`, `lum_bright_frac`, `hl_cover_2x` ... `hl_cover_16x`, `hl_frac_half_max`, `hl_coverage` |
+| contrast to the mean | `contrast_local`, `contrast_local_blur` |
+| Meese-Summers contrast | `contrast_meese_summers`, `contrast_meese_summers_blur` |
+| gradient of L\* | `edge_density`, `hl_sharpness` |
+| RMS contrast of L\*/100 | `band_rms_1` ... `band_rms_5`, `spec_rms_low`, `spec_rms_mid`, `spec_rms_high` |
+| log10 pyramid energy | `pyr_level_1` ... `pyr_level_4` |
+| anisotropy of the pyramid | `pyr_anisotropy_fine`, `pyr_anisotropy_coarse` |
+| speed | `flow_speed`, `flow_speed_sd`, `flow_hl_speed`, `track_speed` |
+| divergence and curl of the flow | `flow_divergence`, `flow_curl` |
+| gaze position in the bounding box (fixed axis, 0 to 1) | `gaze_x_rel`, `gaze_y_rel` |
 
-Every setting is in [`utils/analysis_config.m`](utils/analysis_config.m). Two
-values describe the experiment. They are the current working assumptions and
-are marked `CONFIRM` in that file; change them there if the experiment was
-different, and run step 3 again.
+## 9. The experiment: visual angle and presentation
 
-| Setting | Current value | Used for |
-| --- | --- | --- |
-| `cfg.presentation.timing` | `'recording'`: the 240 frame steps are spread evenly over each recording (13.5 s, about 56 ms per step) | which frame was on the screen at each gaze sample |
-| `cfg.presentation.start_frame` | 61: a trial starts at the extreme on the left, swings to the right and back | the same |
+Two entries of `config.json` describe the experiment, and one assumption about
+the recordings is built into the code. Change the entries if the experiment
+was different, and compute the statistics again.
 
-They only affect the local statistics.
+| | Current value | Used for | Status |
+| --- | --- | --- | --- |
+| `image_size_deg` | 27.6: the stimulus image spans 27.6 deg | the size of the gaze window in pixels, and the statistics defined in degrees | measured |
+| `start_frame` | 61: a trial starts at the extreme on the left, swings to the right and back | which frame was on the screen at each gaze sample | to confirm |
+| timing of the frames | the 240 frame steps are spread evenly over each recording (13.5 s, about 56 ms per step) | the same | to confirm |
+
+The frame shown first and the timing only affect the local statistics.
 
 **The visual angle.** The visual angle that the stimulus image spans is set in
-[`display_config.json`](display_config.json), in the folder of the repository,
-and nowhere else:
-
-```json
-{
-  "image_size_deg": 27.6
-}
-```
-
-In the experiment the image was 39.3 cm high (the full height of the display)
-and was viewed from 80 cm, so it spanned 2 x atan(39.3 / (2 x 80)) = 27.6 deg.
-With the 1024 pixels of the stimulus image, one degree is 37.1 image pixels,
-and the default window of radius 1.5 deg is 55.7 pixels in radius. The value
+`config.json` (`image_size_deg`) and nowhere else. In the experiment the image
+was 39.3 cm high (the full height of the display) and was viewed from 80 cm, so
+it spanned 2 x atan(39.3 / (2 x 80)) = 27.6 deg. With the 1024 pixels of the
+stimulus image, one degree is 37.1 image pixels, and a window of radius 1.5 deg
+is 55.7 pixels in radius. The value
 sets the size of the gaze window and enters the statistics that are defined in
 degrees: the six whose names end in `_deg` (size and position of the
 silhouette, position of gaze) and the two contrast statistics that use a local
@@ -372,20 +476,17 @@ and comes back: one cycle is 61, 60, ..., 32, 1, 2, ..., 31, 30, ..., 2, 1, 32,
 ..., 60 (120 frame steps), and a trial shows two cycles (240 frame steps).
 [`utils/presentation_sequence.m`](utils/presentation_sequence.m) returns the
 frame shown at every step. For a trial that starts at the central view, set
-`start_frame = 1` (and `cfg.presentation.start_direction`, 1 for a first
-movement to the right, -1 to the left).
+`"start_frame": 1` in `config.json` (and `advanced.presentation.start_direction`:
+1 for a first movement to the right, -1 to the left).
 
-With `timing = 'recording'` a recording is taken to span exactly the two
-cycles; if the recordings include time before or after the motion, or the
-frames were shown at a fixed rate, set `timing = 'nominal'` and
-`cfg.presentation.trial_duration_s`.
+**The timing of the frames.** A gaze file gives the time of every sample but
+not the time at which each frame appeared. A recording is therefore taken to
+span exactly the two cycles of the trial: its 240 frame steps are spread evenly
+from the first to the last sample (`utils/gaze_per_step.m`). The example
+recordings last 13.50 to 13.57 s, so a frame step is about 56 ms. If recordings
+include time before or after the motion, they must be cut to the motion first.
 
-Other settings that are likely to be changed are the default radius of the
-window (`cfg.window.radius_deg`), the smallest part of the window that must lie
-on the statue (`cfg.window.min_coverage`) and the width of the band left out at
-the contour (`cfg.edge.border_px`).
-
-## 9. The statistics
+## 10. The statistics
 
 There are 161 statistics. [docs/statistics.md](docs/statistics.md) lists every
 one with its definition; the same table is returned by `statistic_catalog()`
@@ -438,7 +539,7 @@ are kept out of every statistic:
   threshold of zero would count as object. Openings through which the
   background is seen stay background.
 * Pixel statistics are pooled over the *interior*: the silhouette eroded by
-  7 px (`cfg.edge.border_px`). A mean over a gaze window is therefore the mean
+  7 px (`advanced.contour.border_px`). A mean over a gaze window is therefore the mean
   over the pixels of the window that lie on the statue, not over the whole
   disk. The width of the band was measured on the stimuli: in material C the
   step of the contour is over within 2 px, but in materials R and S the rim of
@@ -457,28 +558,33 @@ are kept out of every statistic:
 * A gaze window with less than 10% of its area on the statue gives NaN.
 
 Values cannot diverge at dark pixels either: log luminance is floored at 1e-4
-(`cfg.stats.lum_floor`), the denominators of saturation and of the ratio
+(`advanced.statistics.lum_floor`), the denominators of saturation and of the ratio
 statistics are floored, references use percentiles instead of the minimum and
 maximum, and a region with too few pixels returns NaN instead of a value.
 
-## 10. Running time, memory and common problems
+## 11. Running time, memory and common problems
 
 | Step | Time with a parallel pool of ten workers |
 | --- | --- |
 | `compute_global_statistics` | about 6 minutes |
 | `compute_local_statistics`, one recording | about 1 minute |
 | video of one trial | about 2 minutes |
-| `demo`, first run | about 15 minutes |
+| `demo`, first run with the three example recordings | about 15 minutes |
 
 The scripts use a parallel pool of the default size. With ten workers they need
 about 10 GB of memory, since a condition is held in memory while it is
 processed; fewer workers need less. Without the Parallel Computing Toolbox the
 same loops run serially.
 
+* **A message about `config.json`**: the file could not be read as JSON (a
+  missing comma or quote), or the entry named in the message has a value that
+  cannot be used (section 4).
+* **"No file matches ..."**: an item of `eye_movement_files` in `config.json`
+  names no existing file; check the path.
 * **"Stimulus files not found"**: put the nine .mat files in
   `data/MAT-images/` (step 1); the message names the files that were not found.
 * **"The name of ... does not contain a condition"**: the condition of a
-  recording is read from the name of its file (section 5); rename the file so
+  recording is read from the name of its file (section 6); rename the file so
   that one part between underscores is the condition, for example `BR`.
 * **Many NaN in a local result**: gaze was missing (blinks) or beside the
   statue at those steps. `Lc.values(:, :, strcmp(Lc.names, 'win_coverage'))`
@@ -487,16 +593,17 @@ same loops run serially.
 * **Out of memory**: start a smaller pool before running the scripts, for
   example `parpool(4)`.
 
-## 11. Files
+## 12. Files
 
 ```
-demo.m                        runs everything on the three example recordings
+config.json                   every setting: files to process, window, video, visual angle, parameters
+demo.m                        runs everything as set in config.json
 compute_global_statistics.m   statistics of the whole statue -> results/global_statistics.mat
 compute_local_statistics.m    statistics around gaze         -> results/local_statistics_<name>_r<radius>deg.mat
 make_trajectory_video.m       video of a trial for checking by eye (optional)
-display_config.json           visual angle of the stimulus image
 utils/
-  analysis_config.m           every setting (paths, presentation, display, parameters)
+  load_config.m               reads config.json (holds no settings itself)
+  list_eye_movement_files.m   the eye-movement files named in config.json
   px_to_deg.m, deg_to_px.m    pixels <-> degrees of visual angle
   statistic_catalog.m         name, family and definition of every statistic
   load_frames.m               reads the stimulus files as linear RGB

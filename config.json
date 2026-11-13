@@ -1,0 +1,145 @@
+{
+  "eye_movement_files": ["data/trajectories/*.csv"],
+  "window_radius_deg": 1.5,
+  "make_video": true,
+
+  "image_size_deg": 27.6,
+  "start_frame": 61,
+
+  "stimulus_folder": "data/MAT-images",
+  "results_folder": "results",
+
+  "advanced": {
+    "stimulus": {
+      "statues": ["B", "H", "P"],
+      "materials": ["C", "R", "S"],
+      "n_frames": 61,
+      "image_size_px": 1024,
+      "format": "mat",
+      "mat_pattern": "%s.mat",
+      "mat_variable": "img",
+      "mat_encoding": "srgb",
+      "mat_white": 1,
+      "folder_pattern": "extracted_pngs_%s",
+      "file_pattern": "frame_%02d.png"
+    },
+    "presentation": {
+      "frames_per_quarter": 30,
+      "n_cycles": 2,
+      "start_direction": 1,
+      "trial_duration_s": 13.5
+    },
+    "gaze_file": {
+      "image_rect_px": [0, 0, 1080, 1080]
+    },
+    "silhouette": {
+      "threshold_8bit": 1,
+      "close_px": 1,
+      "min_area": 200
+    },
+    "contour": {
+      "border_px": 7,
+      "taper_px": 8
+    },
+    "window": {
+      "min_coverage": 0.10,
+      "taper_frac": 0.25,
+      "nfft": 256
+    },
+    "statistics": {
+      "lum_floor": 0.0001,
+      "chroma_min_lum": 0.002,
+      "hl_fraction": 0.05,
+      "hl_min_area": 20,
+      "band_sigma": [1, 2, 4, 8, 16],
+      "blur_deg": 0.5,
+      "nfft": 1024,
+      "spec_fit": [0.015625, 0.25],
+      "spec_bands": [0.03125, 0.125],
+      "pyr_levels": 4,
+      "pyr_orient": 4,
+      "min_pixels": 200
+    },
+    "motion": {
+      "scale": 0.5,
+      "border_px": 15,
+      "div_thresh": 0.05,
+      "grid_px": 8,
+      "max_fb_error": 1,
+      "ransac_px": 1
+    },
+    "rng_seed": 0
+  },
+
+  "help": {
+    "eye_movement_files": "The eye-movement files to process: a list of csv files, each a file name or a pattern with * (all files that match). Paths are relative to the folder of the repository, or absolute.",
+    "window_radius_deg": "Radius of the circular window around the gaze position, in degrees of visual angle. A list, for example [1, 1.5, 2], computes the statistics once per radius.",
+    "make_video": "true: also make a video of every trial for checking by eye (about 2 minutes per trial). false: statistics only.",
+    "image_size_deg": "Visual angle that the stimulus image spans on the display, in degrees (the image is square). The image was 39.3 cm high, the full height of the display, and was viewed from 80 cm: 2 * atan(39.3 / (2 * 80)) = 27.6 deg, that is 37.1 image pixels per degree.",
+    "start_frame": "Rendered frame shown first in a trial: 61 = extreme on the left (the statue then swings to the right and back), 1 = central view, 31 = extreme on the right. To confirm against the experiment.",
+    "stimulus_folder": "Folder that holds the nine stimulus files BC.mat ... PS.mat.",
+    "results_folder": "Folder in which the results and the videos are written.",
+    "advanced": {
+      "about": "Parameters of the analysis itself. They rarely need to change; a change of any of them changes the statistics, so compute everything again afterwards.",
+      "stimulus": {
+        "statues": "Letters of the statues. A condition is named statue then material: BC is statue B in material C.",
+        "materials": "Letters of the materials.",
+        "n_frames": "Rendered frames per condition.",
+        "image_size_px": "Width and height of a frame in pixels (frames are square).",
+        "format": "'mat': one file per condition, <stimulus_folder>/<mat_pattern>, the stimuli as shown. 'png': 8-bit images, <stimulus_folder>/<folder_pattern>/<file_pattern>.",
+        "mat_pattern": "Name of the .mat file of a condition (%s = condition).",
+        "mat_variable": "Variable of the .mat file that holds the frames ('' = the largest variable of the file).",
+        "mat_encoding": "'srgb' (gamma-encoded between 0 and 1, as these files are) or 'linear'.",
+        "mat_white": "Value of the display white after decoding.",
+        "folder_pattern": "Format 'png': folder of a condition (%s = condition).",
+        "file_pattern": "Format 'png': file of a frame (%02d = frame number)."
+      },
+      "presentation": {
+        "frames_per_quarter": "Frame steps from the central view to an extreme of the swing. One cycle is four times this, 120 frame steps.",
+        "n_cycles": "Cycles shown in a trial.",
+        "start_direction": "First movement if the trial starts between the extremes (start_frame is not 61 or 31): 1 = to the right, toward frame 31; -1 = to the left.",
+        "trial_duration_s": "Duration of the two cycles of a trial in seconds. Used only for the time axis of the statistics of the whole statue, which have no recording. For a recording, the time of every gaze sample is read from the file (Time_sec), and the 240 frame steps of the trial are spread evenly from its first to its last sample."
+      },
+      "gaze_file": {
+        "image_rect_px": "Rectangle that the stimulus image occupies in the coordinates of the gaze files, [left, top, width, height]. The gaze files are in pixels of the stimulus as displayed, 1080 x 1080 with the origin at its top-left corner. For gaze in screen pixels, give the rectangle of the image on the screen."
+      },
+      "silhouette": {
+        "threshold_8bit": "A pixel belongs to the statue if any sRGB-encoded channel reaches this many 8-bit steps (1 = 1/255) in any of the three materials. Zero would not do: the renderer's pixel filter leaves values near 1e-8 for about 2 px around the statue.",
+        "close_px": "Radius of the closing that fills pinholes left by black pixels of the statue.",
+        "min_area": "Connected parts of the silhouette smaller than this many pixels are dropped."
+      },
+      "contour": {
+        "border_px": "Width of the band inside the silhouette that is left out of every pixel statistic, so that the contour against the black background does not enter. Measured on the stimuli: in materials R and S the rim of the statue is black for 2 to 3 px and the gradient peaks 3 to 4 px inside the silhouette, back within 20% of its interior level from the 8th pixel. One band for all materials, so that the three materials of a statue are measured over the same pixels.",
+        "taper_px": "Width over which the window of the spectral statistics falls smoothly to zero inside that band."
+      },
+      "window": {
+        "min_coverage": "A gaze window with less than this fraction of its area on the statue gives NaN.",
+        "taper_frac": "Outer fraction of the radius over which the spectral window of the gaze window falls to zero.",
+        "nfft": "Smallest size of the Fourier transform of a gaze window (zero-padded; larger windows use the next power of 2)."
+      },
+      "statistics": {
+        "lum_floor": "Floor of luminance before the logarithm (1 = display white; a third of one 8-bit step).",
+        "chroma_min_lum": "Chromaticity is not used below this luminance (nearly black pixels).",
+        "hl_fraction": "Highlights are the brightest fraction of the pixels of the statue in a frame.",
+        "hl_min_area": "Highlight regions smaller than this many pixels are left out of the shape statistics.",
+        "band_sigma": "Gaussian scales of the band-pass images, in pixels, fine to coarse.",
+        "blur_deg": "Scale of the local mean used by the local-contrast statistics, in degrees.",
+        "nfft": "Size of the Fourier transform of the whole image.",
+        "spec_fit": "Range of spatial frequency over which the slope of the amplitude spectrum is fitted, in cycles per pixel (1/64 to 1/4).",
+        "spec_bands": "Limits between low, middle and high spatial frequency, in cycles per pixel (1/32 and 1/8).",
+        "pyr_levels": "Octaves of the steerable pyramid (level 1 = finest).",
+        "pyr_orient": "Orientations of the steerable pyramid.",
+        "min_pixels": "A region with fewer pixels than this gives NaN."
+      },
+      "motion": {
+        "scale": "Resolution at which the dense optical flow is estimated, relative to the image.",
+        "border_px": "Width of the band inside the silhouette left out of the flow and tracking statistics, where the flow describes the outline moving over the background.",
+        "div_thresh": "An absolute divergence above this counts as divergent (per frame step).",
+        "grid_px": "Spacing of the tracked points in pixels.",
+        "max_fb_error": "A point counts as tracked if its forward-backward error is below this many pixels.",
+        "ransac_px": "Inlier distance of the fit of one rigid 3-D motion (fundamental matrix), in pixels."
+      },
+      "rng_seed": "Seed of every randomized step of the analysis."
+    }
+  }
+}

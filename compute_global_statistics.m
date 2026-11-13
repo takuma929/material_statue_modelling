@@ -12,7 +12,7 @@ function G = compute_global_statistics(refresh_masks)
 %   G = compute_global_statistics also returns the result.
 %   compute_global_statistics(true) first rebuilds the cached silhouettes
 %   (needed after stimulus files are replaced in place; a change of the
-%   stimulus format or folder in analysis_config is detected automatically).
+%   stimulus format or folder in config.json is detected automatically).
 %
 %   The stimulus files must be in data/MAT-images/ (see README.md).
 %
@@ -42,7 +42,7 @@ function G = compute_global_statistics(refresh_masks)
 if nargin < 1, refresh_masks = false; end
 project_root = fileparts(mfilename('fullpath'));
 addpath(fullfile(project_root, 'utils'));
-cfg = analysis_config();
+cfg = load_config();
 seq = presentation_sequence(cfg);
 check_stimuli(cfg);
 if ~exist(cfg.paths.results, 'dir'), mkdir(cfg.paths.results); end

@@ -40,7 +40,7 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `lum_michelson` | Michelson contrast | (P99 - P1) / (P99 + P1) of Y. |
 | `lum_dark_frac` | dark fraction | Fraction of the region darker than a fifth of its mean luminance. |
 | `lum_bright_frac` | bright fraction | Fraction of the region brighter than half the display white (Y > 0.5). |
-| `loglum_mean` | mean log luminance | Mean of log10 Y (Y floored at cfg.stats.lum_floor). |
+| `loglum_mean` | mean log luminance | Mean of log10 Y (Y floored at advanced.statistics.lum_floor). |
 | `loglum_sd` | SD of log luminance | Standard deviation of log10 Y. |
 | `loglum_skew` | log-luminance skewness | Skewness of log10 Y. |
 | `loglum_kurt` | log-luminance kurtosis | Kurtosis of log10 Y. |
@@ -89,7 +89,7 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `saturation_p99` | saturation p99 | 99th percentile of saturation (C\*ab / L\*) over the region. |
 | `hue_mean` | mean hue | Chroma-weighted circular mean of the hue angle atan2(b\*, a\*) [deg, 0-360]. Circular: average it over time with circular statistics. |
 | `hue_sd` | hue spread | Chroma-weighted circular standard deviation of the hue angle [deg]. |
-| `uv_dist_mean` | mean chromatic distance | Mean distance from D65 in the CIE 1976 u'v' diagram, over pixels with Y > cfg.stats.chroma_min_lum. |
+| `uv_dist_mean` | mean chromatic distance | Mean distance from D65 in the CIE 1976 u'v' diagram, over pixels with Y > advanced.statistics.chroma_min_lum. |
 | `uv_dist_sd` | SD of chromatic distance | Standard deviation of the same distance. |
 | `sat_rgb_mean` | mean RGB saturation | Mean of 1 - min(R,G,B) / max(R,G,B) of linear RGB. |
 | `sat_rgb_sd` | SD of RGB saturation | Standard deviation of the same. |
@@ -101,7 +101,7 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `corr_lightness_saturation` | corr(L\*, saturation) | Pearson correlation across pixels between L\* and saturation. |
 | `corr_lightness_chroma` | corr(L\*, chroma) | Correlation between L\* and chroma. |
 | `corr_lightness_b` | corr(L\*, b\*) | Correlation between L\* and b\*. |
-| `corr_lum_uv_dist` | corr(Y, u'v' distance) | Correlation between Y and the u'v' distance from D65 (pixels with Y > cfg.stats.chroma_min_lum). |
+| `corr_lum_uv_dist` | corr(Y, u'v' distance) | Correlation between Y and the u'v' distance from D65 (pixels with Y > advanced.statistics.chroma_min_lum). |
 | `corr_loglum_sat_rgb` | corr(log Y, RGB saturation) | Correlation between log10 Y and the RGB saturation. |
 
 ### `contrast` (6)
@@ -111,7 +111,7 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `contrast_dynamic_range` | dynamic range | log10 of P99.9 / P0.1 of Y. |
 | `contrast_robust_range` | robust dynamic range | log10 of the mean of the brightest 1% over the mean of the darkest 1% of the region. |
 | `contrast_local` | mean absolute contrast | Mean of \|Y - mean\| / mean. |
-| `contrast_local_blur` | local contrast | Mean of \|Y - local mean\| divided by the mean of the local mean; the local mean is a Gaussian average (cfg.stats.blur_deg) over object pixels only. |
+| `contrast_local_blur` | local contrast | Mean of \|Y - local mean\| divided by the mean of the local mean; the local mean is a Gaussian average (advanced.statistics.blur_deg) over object pixels only. |
 | `contrast_meese_summers` | Meese-Summers contrast | Mean of \|c\|^2.4 / (1 + \|c\|^2) with c = (Y - mean) / mean. |
 | `contrast_meese_summers_blur` | Meese-Summers, local | The same with c = (Y - local mean) / local mean. |
 
@@ -129,7 +129,7 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `hl_n_regions` | number of highlights | Number of connected highlight regions per 10,000 region pixels. |
 | `hl_mean_area` | highlight size | Mean area of the highlight regions [px]. |
 | `hl_area_cv` | highlight size variation | SD of the areas of the highlight regions divided by their mean. |
-| `hl_elongation` | highlight elongation | Area-weighted mean ratio of the major to the minor axis of the highlight regions of at least cfg.stats.hl_min_area px. |
+| `hl_elongation` | highlight elongation | Area-weighted mean ratio of the major to the minor axis of the highlight regions of at least advanced.statistics.hl_min_area px. |
 | `hl_orient_coherence` | highlight alignment | Area-weighted coherence of the orientations of those regions (0 = all orientations, 1 = one orientation). |
 | `hl_sharpness` | highlight sharpness | Mean gradient magnitude of L\* on the boundary pixels of the highlights [L\* per px]. |
 | `hl_texture` | highlight texture | Mean gradient magnitude of L\* inside the highlights divided by the SD of L\* of the region. |
@@ -148,16 +148,16 @@ Pooled over the whole statue (`G.frame`) and over the gaze window (`Lc`).
 | `edge_energy` | edge energy (Y) | Mean gradient magnitude of linear luminance. |
 | `grad_skew` | gradient skewness | Skewness of the gradient magnitude of L\*. |
 | `grad_kurt` | gradient kurtosis | Kurtosis of the gradient magnitude of L\* (high: few sharp edges on a smooth surface). |
-| `band_rms_1` | band contrast 1 | SD of band-pass image 1 of L\*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only. |
-| `band_rms_2` | band contrast 2 | SD of band-pass image 2 of L\*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only. |
-| `band_rms_3` | band contrast 3 | SD of band-pass image 3 of L\*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only. |
-| `band_rms_4` | band contrast 4 | SD of band-pass image 4 of L\*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only. |
-| `band_rms_5` | band contrast 5 | SD of band-pass image 5 of L\*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only. |
+| `band_rms_1` | band contrast 1 | SD of band-pass image 1 of L\*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only. |
+| `band_rms_2` | band contrast 2 | SD of band-pass image 2 of L\*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only. |
+| `band_rms_3` | band contrast 3 | SD of band-pass image 3 of L\*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only. |
+| `band_rms_4` | band contrast 4 | SD of band-pass image 4 of L\*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only. |
+| `band_rms_5` | band contrast 5 | SD of band-pass image 5 of L\*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only. |
 | `band_fine_coarse` | fine / coarse contrast | log10 of (band 1 + band 2) / (band 4 + band 5). |
-| `spec_slope` | spectral slope | Slope of log amplitude against log spatial frequency over cfg.stats.spec_fit, from the Fourier transform of L\*/100 minus its mean, multiplied by a window that falls to zero inside the silhouette (and at the edge of a gaze window). |
-| `spec_rms_low` | contrast, low SF | RMS contrast of L\*/100 below cfg.stats.spec_bands(1) c/px. |
-| `spec_rms_mid` | contrast, middle SF | RMS contrast between the two limits of cfg.stats.spec_bands. |
-| `spec_rms_high` | contrast, high SF | RMS contrast above cfg.stats.spec_bands(2) c/px. |
+| `spec_slope` | spectral slope | Slope of log amplitude against log spatial frequency over advanced.statistics.spec_fit, from the Fourier transform of L\*/100 minus its mean, multiplied by a window that falls to zero inside the silhouette (and at the edge of a gaze window). |
+| `spec_rms_low` | contrast, low SF | RMS contrast of L\*/100 below advanced.statistics.spec_bands(1) c/px. |
+| `spec_rms_mid` | contrast, middle SF | RMS contrast between the two limits of advanced.statistics.spec_bands. |
+| `spec_rms_high` | contrast, high SF | RMS contrast above advanced.statistics.spec_bands(2) c/px. |
 | `spec_low_high_ratio` | low / high SF energy | log10 of the spectral energy below 1/16 c/px over the energy above. |
 | `spec_orient_entropy` | orientation entropy | Entropy of the spectral energy over 18 orientation bins, divided by its maximum (1 = isotropic). |
 | `spec_orient_concentration` | orientation concentration | Length of the energy-weighted mean of exp(2 i theta) over the spectrum (1 = one orientation). |
@@ -198,7 +198,7 @@ Pooled over the whole statue (`G.pair`) and over the gaze window (`Lc`). At a fr
 | `flow_hl_residual_ratio` | highlight residual | Mean residual over the highlights divided by the mean residual of the region. |
 | `flow_divergence` | flow divergence | Mean absolute divergence of the flow. |
 | `flow_curl` | flow curl | Mean absolute curl of the flow. |
-| `flow_div_frac` | divergent fraction | Fraction of the region with \|divergence\| above cfg.flow.div_thresh. |
+| `flow_div_frac` | divergent fraction | Fraction of the region with \|divergence\| above advanced.motion.div_thresh. |
 | `flow_dir_coherence` | direction coherence | Magnitude of the mean flow vector divided by the mean flow magnitude (1 = one direction). |
 
 ### `tracking` (4)

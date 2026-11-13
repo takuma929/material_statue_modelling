@@ -1,24 +1,29 @@
 function Lc = compute_local_statistics(trajectory_file, radius_deg, make_video)
 % COMPUTE_LOCAL_STATISTICS  Statistics of the image around the gaze position.
 %
-%   compute_local_statistics(trajectory_file) reads a file of eye movements
-%   (csv; format in utils/load_trajectories.m and README.md) and computes,
-%   for every frame step of the presentation, the
-%   statistics of utils/statistic_catalog.m inside a circular window
-%   centred on the gaze position, on the frame that was on the screen at
-%   that moment. The result is written to one file in results/.
+%   compute_local_statistics reads the eye-movement files named in
+%   config.json (csv; format in utils/load_trajectories.m and README.md)
+%   and computes, for every frame step of the presentation, the statistics
+%   of utils/statistic_catalog.m inside a circular window centred on the
+%   gaze position, on the frame that was on the screen at that moment. One
+%   result file per recording and per radius of the window is written to
+%   results/. Which files are processed (eye_movement_files), the radius of
+%   the window in degrees of visual angle (window_radius_deg) and whether a
+%   video of every trial is made (make_video) are all set in config.json.
 %
-%   compute_local_statistics(trajectory_file, radius_deg) sets the radius
-%   of the window in degrees of visual angle (default 1.5, a window 3 deg
-%   across).
-%   compute_local_statistics(trajectory_file, radius_deg, true) also makes
-%   a video of every trial for visual inspection (make_trajectory_video).
-%   Lc = compute_local_statistics(...) also returns the result.
+%   The arguments override config.json for one call:
+%   compute_local_statistics(trajectory_file) processes this file only.
+%   compute_local_statistics(trajectory_file, radius_deg) also sets the
+%   radius of the window [deg].
+%   compute_local_statistics(trajectory_file, radius_deg, make_video) also
+%   sets whether the video is made (true or false).
+%   Lc = compute_local_statistics(...) also returns the result: a struct
+%   for one file, a cell array (files x radii) when run from config.json.
 %
-%   Examples (demo.m runs the three example files)
+%   Examples
+%     compute_local_statistics                    % everything as set in config.json
 %     compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv')
-%     compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 2.5)
-%     compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 1.5, true)
+%     compute_local_statistics('data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv', 2.5, false)
 %
 %   What is computed at each frame step:
 %     - the geometry of the window (how much of it lies on the statue, how
@@ -57,17 +62,29 @@ function Lc = compute_local_statistics(trajectory_file, radius_deg, make_video)
 
 project_root = fileparts(mfilename('fullpath'));
 addpath(fullfile(project_root, 'utils'));
-cfg = analysis_config();
+cfg = load_config();
+if nargin < 3 || isempty(make_video), make_video = cfg.run.make_video; end
 if nargin < 1 || isempty(trajectory_file)
-    error('compute_local_statistics:file', ...
-        'Give the trajectory file, for example compute_local_statistics(''data/trajectories/ABF_1_BR_gaze_trajectory_coordinates.csv'').');
+    % no file given: every file and every radius of config.json
+    files = list_eye_movement_files(cfg);
+    radii = cfg.run.radius_deg;
+    if nargin >= 2 && ~isempty(radius_deg), radii = radius_deg; end
+    fprintf('config.json: %d eye-movement file(s), window radius %s deg, video: %s\n', ...
+        numel(files), strjoin(arrayfun(@(r) sprintf('%g', r), radii, 'UniformOutput', false), ', '), mat2str(make_video));
+    Lc = cell(numel(files), numel(radii));
+    for i = 1:numel(files)
+        for j = 1:numel(radii)
+            Lc{i, j} = compute_local_statistics(files{i}, radii(j), make_video);
+        end
+    end
+    if nargout == 0, clear Lc; end
+    return
 end
 if nargin >= 2 && ~isempty(radius_deg)
     assert(isscalar(radius_deg) && radius_deg > 0, 'compute_local_statistics:radius', ...
         'The radius of the window must be a positive number [deg].');
     cfg.window.radius_deg = radius_deg;
 end
-if nargin < 3 || isempty(make_video), make_video = false; end
 if ~exist(trajectory_file, 'file')                        % also accept a name inside data/trajectories/
     trajectory_file = fullfile(cfg.paths.trajectories, trajectory_file);
 end

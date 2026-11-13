@@ -15,6 +15,17 @@ function make_trajectory_video(result_file, trial_numbers)
 %             that statistic over all frame steps of the file; the white
 %             tick marks, on the same axis, the value of the whole statue
 %             in the same frame (if results/global_statistics.mat exists)
+%
+%   Statistics that measure the same quantity in the same unit share one
+%   axis, so that their bars can be compared with one another: the axis
+%   runs from the lowest 5th to the highest 95th percentile among them, and
+%   starts at zero if they are all positive. For example, lum_p01 ...
+%   lum_max, lum_mean, lum_median and lum_sd are all luminances and are
+%   drawn on one luminance axis that starts at zero: a bar twice as long is
+%   twice the luminance. The groups are listed in the function shared_axes
+%   at the end of this file. Correlations use the fixed axis -1 to 1 and
+%   relative gaze positions the fixed axis 0 to 1. Every other statistic
+%   has its own axis, from its 5th to its 95th percentile.
 %   make_trajectory_video(result_file, trial_numbers) draws only the listed
 %   trials (their numbers in the trajectory file).
 %
@@ -28,7 +39,7 @@ function make_trajectory_video(result_file, trial_numbers)
 project_root = fileparts(mfilename('fullpath'));
 addpath(fullfile(project_root, 'utils'));
 S = load(result_file, 'Lc'); Lc = S.Lc;
-cfg = analysis_config();
+cfg = load_config();
 cfg.window.radius_deg = Lc.radius_deg;                     % the window the statistics were computed in
 check_stimuli(cfg);
 col = project_colors();
@@ -42,6 +53,18 @@ SLOW = 2;                                                   % playback is this m
 K = numel(Lc.names);
 all_values = reshape(Lc.values, [], K);
 lo = prctile(all_values, 5, 1); hi = prctile(all_values, 95, 1);
+% statistics of the same quantity and unit share one axis (shared_axes)
+groups = shared_axes();
+for g = 1:size(groups, 1)
+    in = ~cellfun(@isempty, regexp(Lc.names, groups{g, 2}, 'once'));
+    if ~any(in), continue; end
+    if isempty(groups{g, 3})
+        lo(in) = min(lo(in), [], 'omitnan'); hi(in) = max(hi(in), [], 'omitnan');
+        if lo(find(in, 1)) > 0, lo(in) = 0; end             % all positive: the axis starts at zero
+    else
+        lo(in) = groups{g, 3}(1); hi(in) = groups{g, 3}(2);
+    end
+end
 span = hi - lo;
 flat = ~(span > 0);                                         % a statistic that does not vary over the file
 span(flat) = 1; lo(flat) = lo(flat) - 0.5;                  % is drawn as a half bar
@@ -127,7 +150,7 @@ for trial_number = trial_numbers
     for g = 1:numel(col.group_names)
         text(ov, xk, yz + 131 + (g - 1) * 19, col.group_names{g}, font{:}, 'FontSize', 11, 'Color', min(col.group(g, :) * 1.2, 1));
     end
-    notes = {'Bar: value in the gaze window now', 'Bar axis: 5th (left) to 95th (right)', 'percentile over this recording', ...
+    notes = {'Bar: value in the gaze window now', 'Bar axis: 5th to 95th percentile over this', 'recording; one axis per kind of quantity', ...
         'White tick: whole statue, same frame', 'Pixels used: on the statue, in the', ...
         sprintf('circle, >= %d px from its contour', cfg.edge.border_px)};
     note_y = yz + [249 262 275 291 307 320];
@@ -213,4 +236,34 @@ for trial_number = trial_numbers
     close(vw); close(fig);
     fprintf('Video of trial %d (%s) -> %s\n', trial_number, cond, fullfile(vw.Path, vw.Filename));
 end
+end
+
+% =========================================================================
+function groups = shared_axes()
+% Statistics that are drawn on one common axis: {label, pattern of the
+% names, fixed limits or [] for the limits of the data}. The members of a
+% group measure the same quantity in the same unit.
+groups = {
+    'luminance (1 = display white)',          '^lum_(mean|median|sd|p01|p10|p25|p75|p90|p99|p999|max)$', []
+    'log10 ratio of luminances',              '^(loglum_(sd|range|upper_tail|lower_tail)|contrast_(dynamic|robust)_range|hl_contrast)$', []
+    'lightness L*',                           '^lightness_(mean|median|sd|p01|p99)$', []
+    'a*, b* and chroma',                      '^(a|b|chroma)_(mean|median|sd|p01|p99)$', []
+    'saturation C*ab / L*',                   '^saturation_(mean|median|sd|p01|p99)$', []
+    'skewness',                               '_skew$', []
+    'kurtosis',                               '_kurt$', []
+    'correlation',                            '^corr_', [-1 1]
+    'distance in the u''v'' diagram',          '^uv_dist_(mean|sd)$', []
+    'RGB saturation',                         '^(sat_rgb_(mean|sd)|sat_highlight|sat_body|sat_highlight_drop)$', []
+    'opponent chromaticity of the highlights', '^hl_(rg|yb)$', []
+    'fraction of the pixels of the region',   '^(lum_(dark|bright)_frac|hl_cover_\d+x|hl_frac_half_max|hl_coverage)$', []
+    'contrast to the mean',                   '^contrast_local(_blur)?$', []
+    'Meese-Summers contrast',                 '^contrast_meese_summers(_blur)?$', []
+    'gradient of L* [L* per px]',             '^(edge_density|hl_sharpness)$', []
+    'RMS contrast of L*/100',                 '^(band_rms_\d+|spec_rms_(low|mid|high))$', []
+    'log10 pyramid energy',                   '^pyr_level_\d+$', []
+    'anisotropy of the pyramid',              '^pyr_anisotropy_(fine|coarse)$', []
+    'speed [px per frame step]',              '^(flow_speed|flow_speed_sd|flow_hl_speed|track_speed)$', []
+    'divergence and curl of the flow',        '^flow_(divergence|curl)$', []
+    'gaze position within the bounding box',  '^gaze_[xy]_rel$', [0 1]
+    };
 end

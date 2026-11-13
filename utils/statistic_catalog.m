@@ -23,7 +23,7 @@ function T = statistic_catalog(scope)
 %   name is missing, so the catalog cannot drift from the code.
 %
 %   Conventions. "Region" is the set of object pixels pooled: the interior
-%   of the object (cfg.edge.border_px inside the silhouette) or its part
+%   of the object (advanced.contour.border_px inside the silhouette) or its part
 %   inside the gaze window. Luminance Y is linear, 1 = display white. L*, a*, b* are CIELAB
 %   relative to the display white. Skewness and kurtosis are the
 %   standardized third and fourth moments (kurtosis of a normal
@@ -64,7 +64,7 @@ add('lum_max',         f, s, 'maximum luminance',         'Maximum of Y.');
 add('lum_michelson',   f, s, 'Michelson contrast',        '(P99 - P1) / (P99 + P1) of Y.');
 add('lum_dark_frac',   f, s, 'dark fraction',             'Fraction of the region darker than a fifth of its mean luminance.');
 add('lum_bright_frac', f, s, 'bright fraction',           'Fraction of the region brighter than half the display white (Y > 0.5).');
-add('loglum_mean',     f, s, 'mean log luminance',        'Mean of log10 Y (Y floored at cfg.stats.lum_floor).');
+add('loglum_mean',     f, s, 'mean log luminance',        'Mean of log10 Y (Y floored at advanced.statistics.lum_floor).');
 add('loglum_sd',       f, s, 'SD of log luminance',       'Standard deviation of log10 Y.');
 add('loglum_skew',     f, s, 'log-luminance skewness',    'Skewness of log10 Y.');
 add('loglum_kurt',     f, s, 'log-luminance kurtosis',    'Kurtosis of log10 Y.');
@@ -86,7 +86,7 @@ for i = 1:numel(chan)
 end
 add('hue_mean',     f, s, 'mean hue',               'Chroma-weighted circular mean of the hue angle atan2(b*, a*) [deg, 0-360]. Circular: average it over time with circular statistics.');
 add('hue_sd',       f, s, 'hue spread',             'Chroma-weighted circular standard deviation of the hue angle [deg].');
-add('uv_dist_mean', f, s, 'mean chromatic distance','Mean distance from D65 in the CIE 1976 u''v'' diagram, over pixels with Y > cfg.stats.chroma_min_lum.');
+add('uv_dist_mean', f, s, 'mean chromatic distance','Mean distance from D65 in the CIE 1976 u''v'' diagram, over pixels with Y > advanced.statistics.chroma_min_lum.');
 add('uv_dist_sd',   f, s, 'SD of chromatic distance','Standard deviation of the same distance.');
 add('sat_rgb_mean', f, s, 'mean RGB saturation',    'Mean of 1 - min(R,G,B) / max(R,G,B) of linear RGB.');
 add('sat_rgb_sd',   f, s, 'SD of RGB saturation',   'Standard deviation of the same.');
@@ -96,7 +96,7 @@ f = 'color_luminance';
 add('corr_lightness_saturation', f, s, 'corr(L*, saturation)', 'Pearson correlation across pixels between L* and saturation.');
 add('corr_lightness_chroma',     f, s, 'corr(L*, chroma)',     'Correlation between L* and chroma.');
 add('corr_lightness_b',          f, s, 'corr(L*, b*)',         'Correlation between L* and b*.');
-add('corr_lum_uv_dist',          f, s, 'corr(Y, u''v'' distance)', 'Correlation between Y and the u''v'' distance from D65 (pixels with Y > cfg.stats.chroma_min_lum).');
+add('corr_lum_uv_dist',          f, s, 'corr(Y, u''v'' distance)', 'Correlation between Y and the u''v'' distance from D65 (pixels with Y > advanced.statistics.chroma_min_lum).');
 add('corr_loglum_sat_rgb',       f, s, 'corr(log Y, RGB saturation)', 'Correlation between log10 Y and the RGB saturation.');
 
 %% ---- contrast: global contrast estimators (Harvey & Smithson, 2021) ------
@@ -104,7 +104,7 @@ f = 'contrast';
 add('contrast_dynamic_range',     f, s, 'dynamic range',        'log10 of P99.9 / P0.1 of Y.');
 add('contrast_robust_range',      f, s, 'robust dynamic range', 'log10 of the mean of the brightest 1% over the mean of the darkest 1% of the region.');
 add('contrast_local',             f, s, 'mean absolute contrast','Mean of |Y - mean| / mean.');
-add('contrast_local_blur',        f, s, 'local contrast',       'Mean of |Y - local mean| divided by the mean of the local mean; the local mean is a Gaussian average (cfg.stats.blur_deg) over object pixels only.');
+add('contrast_local_blur',        f, s, 'local contrast',       'Mean of |Y - local mean| divided by the mean of the local mean; the local mean is a Gaussian average (advanced.statistics.blur_deg) over object pixels only.');
 add('contrast_meese_summers',     f, s, 'Meese-Summers contrast','Mean of |c|^2.4 / (1 + |c|^2) with c = (Y - mean) / mean.');
 add('contrast_meese_summers_blur',f, s, 'Meese-Summers, local', 'The same with c = (Y - local mean) / local mean.');
 
@@ -120,7 +120,7 @@ add('hl_contrast',   f, s, 'highlight contrast',     'log10 of the mean luminanc
 add('hl_n_regions',  f, s, 'number of highlights',   'Number of connected highlight regions per 10,000 region pixels.');
 add('hl_mean_area',  f, s, 'highlight size',         'Mean area of the highlight regions [px].');
 add('hl_area_cv',    f, s, 'highlight size variation','SD of the areas of the highlight regions divided by their mean.');
-add('hl_elongation', f, s, 'highlight elongation',   'Area-weighted mean ratio of the major to the minor axis of the highlight regions of at least cfg.stats.hl_min_area px.');
+add('hl_elongation', f, s, 'highlight elongation',   'Area-weighted mean ratio of the major to the minor axis of the highlight regions of at least advanced.statistics.hl_min_area px.');
 add('hl_orient_coherence', f, s, 'highlight alignment', 'Area-weighted coherence of the orientations of those regions (0 = all orientations, 1 = one orientation).');
 add('hl_sharpness',  f, s, 'highlight sharpness',    'Mean gradient magnitude of L* on the boundary pixels of the highlights [L* per px].');
 add('hl_texture',    f, s, 'highlight texture',      'Mean gradient magnitude of L* inside the highlights divided by the SD of L* of the region.');
@@ -139,13 +139,13 @@ add('grad_skew',        f, s, 'gradient skewness',     'Skewness of the gradient
 add('grad_kurt',        f, s, 'gradient kurtosis',     'Kurtosis of the gradient magnitude of L* (high: few sharp edges on a smooth surface).');
 for k = 1:5
     add(sprintf('band_rms_%d', k), f, s, sprintf('band contrast %d', k), ...
-        sprintf('SD of band-pass image %d of L*/100: the difference between Gaussian blurs of successive scales (cfg.stats.band_sigma; band 1 = finest), blurred over object pixels only.', k));
+        sprintf('SD of band-pass image %d of L*/100: the difference between Gaussian blurs of successive scales (advanced.statistics.band_sigma; band 1 = finest), blurred over object pixels only.', k));
 end
 add('band_fine_coarse', f, s, 'fine / coarse contrast','log10 of (band 1 + band 2) / (band 4 + band 5).');
-add('spec_slope',       f, s, 'spectral slope',        'Slope of log amplitude against log spatial frequency over cfg.stats.spec_fit, from the Fourier transform of L*/100 minus its mean, multiplied by a window that falls to zero inside the silhouette (and at the edge of a gaze window).');
-add('spec_rms_low',     f, s, 'contrast, low SF',      'RMS contrast of L*/100 below cfg.stats.spec_bands(1) c/px.');
-add('spec_rms_mid',     f, s, 'contrast, middle SF',   'RMS contrast between the two limits of cfg.stats.spec_bands.');
-add('spec_rms_high',    f, s, 'contrast, high SF',     'RMS contrast above cfg.stats.spec_bands(2) c/px.');
+add('spec_slope',       f, s, 'spectral slope',        'Slope of log amplitude against log spatial frequency over advanced.statistics.spec_fit, from the Fourier transform of L*/100 minus its mean, multiplied by a window that falls to zero inside the silhouette (and at the edge of a gaze window).');
+add('spec_rms_low',     f, s, 'contrast, low SF',      'RMS contrast of L*/100 below advanced.statistics.spec_bands(1) c/px.');
+add('spec_rms_mid',     f, s, 'contrast, middle SF',   'RMS contrast between the two limits of advanced.statistics.spec_bands.');
+add('spec_rms_high',    f, s, 'contrast, high SF',     'RMS contrast above advanced.statistics.spec_bands(2) c/px.');
 add('spec_low_high_ratio', f, s, 'low / high SF energy', 'log10 of the spectral energy below 1/16 c/px over the energy above.');
 add('spec_orient_entropy', f, s, 'orientation entropy', 'Entropy of the spectral energy over 18 orientation bins, divided by its maximum (1 = isotropic).');
 add('spec_orient_concentration', f, s, 'orientation concentration', 'Length of the energy-weighted mean of exp(2 i theta) over the spectrum (1 = one orientation).');
@@ -178,7 +178,7 @@ add('flow_residual',          f, s, 'non-affine flow',        'Mean residual of 
 add('flow_hl_residual_ratio', f, s, 'highlight residual',     'Mean residual over the highlights divided by the mean residual of the region.');
 add('flow_divergence',        f, s, 'flow divergence',        'Mean absolute divergence of the flow.');
 add('flow_curl',              f, s, 'flow curl',              'Mean absolute curl of the flow.');
-add('flow_div_frac',          f, s, 'divergent fraction',     'Fraction of the region with |divergence| above cfg.flow.div_thresh.');
+add('flow_div_frac',          f, s, 'divergent fraction',     'Fraction of the region with |divergence| above advanced.motion.div_thresh.');
 add('flow_dir_coherence',     f, s, 'direction coherence',    'Magnitude of the mean flow vector divided by the mean flow magnitude (1 = one direction).');
 
 %% ---- tracking: optic-flow cues of Doerschner et al. (2011) ---------------

@@ -1,18 +1,17 @@
-function [gx, gy, valid, event, time] = gaze_per_step(trial, seq, cfg)
+function [gx, gy, valid, event, time] = gaze_per_step(trial, seq, ~)
 % GAZE_PER_STEP  One gaze position for each frame step of the presentation.
 %
-%   [gx, gy, valid, event, time] = gaze_per_step(trial, seq, cfg) reduces
+%   [gx, gy, valid, event, time] = gaze_per_step(trial, seq) reduces
 %   the gaze samples of a trial (load_trajectories) to one position per
 %   frame step of the presentation (presentation_sequence): the median of
 %   the samples recorded while that frame was on the screen. The eye
 %   tracker samples much faster than the frames change, so this pairs every
 %   frame with the place the observer was looking at while it was shown.
 %
-%   Which samples belong to a frame step depends on cfg.presentation.timing:
-%     'recording'  the frame steps are spread evenly over the recording,
-%                  from its first to its last sample
-%     'nominal'    every step lasts seq.dt, counted from the first sample;
-%                  samples after the last step are ignored
+%   The time of every sample is read from the gaze file (Time_sec). The
+%   file does not say when each frame appeared, so the frame steps of the
+%   trial are spread evenly over the recording, from its first to its last
+%   sample: the recording is taken to span exactly the presentation.
 %
 %   gx, gy   1 x T gaze position in image pixels; NaN where fewer than half
 %            of the samples of the step are present (blink, track loss) or
@@ -25,15 +24,8 @@ function [gx, gy, valid, event, time] = gaze_per_step(trial, seq, cfg)
 T = numel(seq.frame);
 gx = nan(1, T); gy = nan(1, T); valid = zeros(1, T); event = nan(1, T);
 t = trial.t - trial.t(1);
-switch cfg.presentation.timing
-    case 'recording'
-        if numel(t) > 1, sample = median(diff(t)); else, sample = 0; end
-        dt = (t(end) + sample) / T;                    % the recording, divided into T equal steps
-    case 'nominal'
-        dt = seq.dt;
-    otherwise
-        error('gaze_per_step:timing', 'cfg.presentation.timing must be ''recording'' or ''nominal''.');
-end
+if numel(t) > 1, sample = median(diff(t)); else, sample = 0; end
+dt = (t(end) + sample) / T;                            % the recording, divided into T equal steps
 time = (0:T - 1) * dt;
 step = floor(t / dt) + 1;                              % frame step of each sample
 ok = ~isnan(trial.x) & ~isnan(trial.y);

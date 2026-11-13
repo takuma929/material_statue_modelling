@@ -3,13 +3,11 @@
 Image and video statistics of rendered statues, computed over the whole statue
 and around the gaze position of an observer. All code is MATLAB.
 
-![The nine conditions, the swing of the statue, a recorded gaze path with the gaze window, and five views across the swing](docs/stimuli.jpg)
+![The nine conditions, three statues in three materials, and five views of one statue across its swing](docs/stimuli.jpg)
 
-*The stimuli. (a) The nine conditions: three statues in three materials. (b) The
-statue swings sinusoidally about its central view for two cycles, from the left
-to the right and back; the 240 frame steps of a trial are drawn from 61
-rendered frames. (c) The gaze path of one trial and the window in which the
-local statistics are computed. (d) Five views across the swing.*
+*The stimuli: three statues in three materials. In a trial the statue swings
+sinusoidally for two cycles, from the left to the right and back; the 240 frame
+steps of a trial are drawn from 61 rendered frames.*
 
 ![Overview of the statistics: one panel per kind of statistic](docs/statistics_overview.jpg)
 
@@ -127,7 +125,7 @@ The entries at the top are the ones that change from one run to the next:
 | `window_radius_deg` | Radius of the circular window around the gaze position, in degrees of visual angle. A list, for example `[1, 1.5, 2]`, computes the statistics once per radius. |
 | `make_video` | `true`: also make a video of every trial (about 2 minutes per trial). `false`: statistics only. |
 | `image_size_deg` | Visual angle that the stimulus image spans on the display, in degrees (section 9). |
-| `start_frame` | Rendered frame shown first in a trial: 61 = extreme on the left (section 9). To confirm against the experiment. |
+| `start_frame` | Rendered frame shown first in a trial: 61 = extreme on the left, as in the experiment (section 9). |
 | `stimulus_folder` | Folder that holds the nine stimulus files. |
 | `results_folder` | Folder in which the results and the videos are written. |
 
@@ -438,11 +436,11 @@ Two entries of `config.json` describe the experiment, and one assumption about
 the recordings is built into the code. Change the entries if the experiment
 was different, and compute the statistics again.
 
-| | Current value | Used for | Status |
-| --- | --- | --- | --- |
-| `image_size_deg` | 27.6: the stimulus image spans 27.6 deg | the size of the gaze window in pixels, and the statistics defined in degrees | measured |
-| `start_frame` | 61: a trial starts at the extreme on the left, swings to the right and back | which frame was on the screen at each gaze sample | to confirm |
-| timing of the frames | the 240 frame steps are spread evenly over each recording (13.5 s, about 56 ms per step) | the same | to confirm |
+| | Value in the experiment | Used for |
+| --- | --- | --- |
+| `image_size_deg` | 27.6: the stimulus image spans 27.6 deg | the size of the gaze window in pixels, and the statistics defined in degrees |
+| `start_frame` | 61: a trial starts at the extreme on the left, swings to the right and back | which frame was on the screen at each gaze sample |
+| timing of the frames | a recording spans the two cycles of the trial: the 240 frame steps are spread evenly over it (13.5 s, about 56 ms per step) | the same |
 
 The frame shown first and the timing only affect the local statistics.
 

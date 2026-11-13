@@ -76,7 +76,7 @@
     "window_radius_deg": "Radius of the circular window around the gaze position, in degrees of visual angle. A list, for example [1, 1.5, 2], computes the statistics once per radius.",
     "make_video": "true: also make a video of every trial for checking by eye (about 2 minutes per trial). false: statistics only.",
     "image_size_deg": "Visual angle that the stimulus image spans on the display, in degrees (the image is square). The image was 39.3 cm high, the full height of the display, and was viewed from 80 cm: 2 * atan(39.3 / (2 * 80)) = 27.6 deg, that is 37.1 image pixels per degree.",
-    "start_frame": "Rendered frame shown first in a trial: 61 = extreme on the left (the statue then swings to the right and back), 1 = central view, 31 = extreme on the right. To confirm against the experiment.",
+    "start_frame": "Rendered frame shown first in a trial: 61 = extreme on the left (the statue then swings to the right and back), 1 = central view, 31 = extreme on the right. In the experiment a trial started at frame 61.",
     "stimulus_folder": "Folder that holds the nine stimulus files BC.mat ... PS.mat.",
     "results_folder": "Folder in which the results and the videos are written.",
     "advanced": {
